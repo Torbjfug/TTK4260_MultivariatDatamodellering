@@ -51,14 +51,14 @@ drops = {}
 thetas = {}
 idecies = {}
 # drops['all'] = []
-# drops['month'] = ['Month_1', 'Month_2',
-#                   'Month_3', 'Month_4', 'Month_5', 'Month_6', 'Month_7', 'Month_8',
-#                   'Month_9', 'Month_10', 'Month_11', 'Month_12']
-# drops['isDay'] = ['IsDayBin_Day', 'IsDayBin_Night']
+drops['month'] = ['Month_1', 'Month_2',
+                  'Month_3', 'Month_4', 'Month_5', 'Month_6', 'Month_7', 'Month_8',
+                  'Month_9', 'Month_10', 'Month_11', 'Month_12']
+drops['isDay'] = ['IsDayBin_Day', 'IsDayBin_Night']
 drops['allCat'] = ['Month_1', 'Month_2',
                    'Month_3', 'Month_4', 'Month_5', 'Month_6', 'Month_7', 'Month_8',
                    'Month_9', 'Month_10', 'Month_11', 'Month_12', 'IsDayBin_Day', 'IsDayBin_Night']
-drops['all'] = X_train.keys().drop(['WindSpeed', 'IrrDirect', 'IrrDiffuse', 'Temperature', 'Percipitation',
+drops['all'] = X_train.keys().drop(['WindSpeed', 'IrrDirect', 'IrrDiffuse',                                         'Temperature', 'Percipitation',
                                     'SnowFlow', 'AirDensity',
                                     'CloudCover', 'IsDayBin_Day', 'IsDayBin_Night', 'Month_1', 'Month_2',
                                     'Month_3', 'Month_4', 'Month_5', 'Month_6', 'Month_7', 'Month_8',
@@ -68,10 +68,14 @@ n = 13
 
 for key in drops:
     print(key)
+
     phi = X_train.drop(drops[key], axis=1).values
+    A = phi.T@phi
+    if np.linalg.det(A) > 5e-1:
+        theta = np.linalg.inv(phi.T@phi)@phi.T@Y_train.values
+    else:
+        theta = np.linalg.pinv(phi.T@phi)@phi.T@Y_train.values
     phi_val = X_val.drop(drops[key], axis=1).values
-    theta1 = np.linalg.pinv(phi.T@phi)@phi.T@Y_train.values
-    theta = theta1
     y_hat = phi_val@theta
     thetas[key] = theta
     index = statistical_indecies(y_hat, Y_val.values)
