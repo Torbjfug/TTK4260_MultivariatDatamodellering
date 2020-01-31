@@ -8,23 +8,34 @@ def rmse(y_hat, y):
 
 
 def RSS(y_hat, y):
-    return np.linalg.norm(y_hat-y)
+    return np.linalg.norm(y_hat-y, 2)
 
 
-def FUV(y_hat, y):
-    return RSS(y_hat, y)/np.var(y_hat-y)
+def FVU(y_hat, y):
+    return RSS(y_hat, y)/np.var(y)
 
 
 def r_squared(y_hat, y):
-    return 1-FUV(y_hat, y)
+    return 1-FVU(y_hat, y)
 
 
 def fit(y_hat, y):
-    return 100*(1-np.sqrt(rmse(y_hat, y)/np.var(y)))
+    return 100*(1-np.sqrt(FVU(y_hat, y)))
 
 
 def mad(y_hat, y):
     return np.mean(np.abs(y-y_hat))
+
+
+def statistical_indecies(y_hat, y):
+    indecies = {}
+    indecies['rmse'] = rmse(y_hat, y)
+    indecies['r_squared'] = r_squared(y_hat, y)
+    indecies['rss'] = RSS(y_hat, y)
+    indecies['fvu'] = FVU(y_hat, y)
+    indecies['fit'] = fit(y_hat, y)
+    indecies['mad'] = mad(y_hat, y)
+    return indecies
 
 
 filepath = 'Data/PowerProduction/'
@@ -35,24 +46,42 @@ X_val = pd.read_csv(filepath + 'X_val.csv', sep=',', index_col=0)
 Y_val = pd.read_csv(filepath + 'Y_val.csv', sep=',', index_col=0)
 
 # X_mask = [:, :n]
+
+drops = {}
+thetas = {}
+idecies = {}
+# drops['all'] = []
+# drops['month'] = ['Month_1', 'Month_2',
+#                   'Month_3', 'Month_4', 'Month_5', 'Month_6', 'Month_7', 'Month_8',
+#                   'Month_9', 'Month_10', 'Month_11', 'Month_12']
+# drops['isDay'] = ['IsDayBin_Day', 'IsDayBin_Night']
+drops['allCat'] = ['Month_1', 'Month_2',
+                   'Month_3', 'Month_4', 'Month_5', 'Month_6', 'Month_7', 'Month_8',
+                   'Month_9', 'Month_10', 'Month_11', 'Month_12', 'IsDayBin_Day', 'IsDayBin_Night']
+drops['all'] = X_train.keys().drop(['WindSpeed', 'IrrDirect', 'IrrDiffuse', 'Temperature', 'Percipitation',
+                                    'SnowFlow', 'AirDensity',
+                                    'CloudCover', 'IsDayBin_Day', 'IsDayBin_Night', 'Month_1', 'Month_2',
+                                    'Month_3', 'Month_4', 'Month_5', 'Month_6', 'Month_7', 'Month_8',
+                                    'Month_9', 'Month_10', 'Month_11', 'Month_12'])
+# n = 11 drops all catecoricals, 13 only drops months
 n = 13
 
-theta = np.linalg.inv(
-    X_train.values[:, :n].T@X_train.values[:, :n])@X_train.values[:, :n].T@Y_train.values
+for key in drops:
+    print(key)
+    phi = X_train.drop(drops[key], axis=1).values
+    phi_val = X_val.drop(drops[key], axis=1).values
+    theta1 = np.linalg.pinv(phi.T@phi)@phi.T@Y_train.values
+    theta = theta1
+    y_hat = phi_val@theta
+    thetas[key] = theta
+    index = statistical_indecies(y_hat, Y_val.values)
+    idecies[key] = index
 
-Y_hat = X_val.values[:, :n]@theta
-rmse1 = rmse(Y_hat, Y_val.values)
-r_squared1 = r_squared(Y_hat, Y_val.values)
-rss1 = RSS(Y_hat, Y_val.values)
-fuv1 = FUV(Y_hat, Y_val.values)
-fit1 = fit(Y_hat, Y_val.values)
-mad1 = mad(Y_hat, Y_val.values)
+    for k in index:
+        print(k, index[k])
+    print()
 
-
-print(np.mean(Y_hat))
-print("RMSE: ", rmse1)
-print("RSS: ", rss1)
-print("FUV: ", fuv1)
-print("R_sq:", r_squared1)
-print("FIT: ", fit1)
-print("MAD:", mad1)
+for key in thetas:
+    print(key)
+    print(thetas[key])
+print(X_train.keys())
